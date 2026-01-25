@@ -2,7 +2,7 @@ import { BridgeAdapter } from './adapters/base';
 import { HopAdapter } from './adapters/hop';
 import { LayerZeroAdapter } from './adapters/layerzero';
 import { StellarAdapter } from './adapters/stellar';
-import { RouteRequest, AggregatedRoutes, BridgeRoute, BridgeError } from './types';
+import { RouteRequest, AggregatedRoutes, BridgeRoute, NormalizedRoute, BridgeError } from './types';
 import { BridgeValidator, BridgeExecutionRequest, ValidationResult } from './validator';
 import { RouteRanker, RankingWeights, DEFAULT_RANKING_WEIGHTS } from './ranker';
 
@@ -145,13 +145,41 @@ export class BridgeAggregator {
   /**
    * Normalize routes to ensure consistent data format
    */
-  private normalizeRoutes(routes: BridgeRoute[]): BridgeRoute[] {
+  private normalizeRoutes(routes: BridgeRoute[]): NormalizedRoute[] {
     return routes.map((route, index) => {
-      // Ensure all required fields are present
-      const normalized: BridgeRoute = {
-        id: route.id || `route-${Date.now()}-${index}`,
-        provider: route.provider,
+      // For single-hop routes, create a hop from the route data
+      const hops = route.hops || [{
         sourceChain: route.sourceChain,
+        destinationChain: route.targetChain,
+        tokenIn: (route.metadata?.tokenIn as string) || 'native', // Default to native if not specified
+        tokenOut: (route.metadata?.tokenOut as string) || 'native',
+        fee: route.fee,
+        estimatedTime: route.estimatedTime,
+        adapter: route.provider,
+        metadata: route.metadata,
+      }];
+
+      // Aggregate total fees and estimated time from hops
+      const totalFees = hops.reduce((sum, hop) => {
+        try {
+          return (BigInt(sum) + BigInt(hop.fee)).toString();
+        } catch {
+          return sum;
+        }
+      }, '0');
+
+      const totalEstimatedTime = hops.reduce((sum, hop) => sum + hop.estimatedTime, 0);
+
+      const normalized: NormalizedRoute = {
+        id: route.id || `route-${Date.now()}-${index}`,
+        sourceChain: route.sourceChain,
+        destinationChain: route.targetChain,
+        tokenIn: hops[0].tokenIn,
+        tokenOut: hops[hops.length - 1].tokenOut,
+        totalFees,
+        estimatedTime: totalEstimatedTime,
+        hops,
+        adapter: route.provider,
         targetChain: route.targetChain,
         inputAmount: route.inputAmount || '0',
         outputAmount: route.outputAmount || '0',
@@ -168,20 +196,42 @@ export class BridgeAggregator {
           normalized: true,
         },
       };
-      
-      // Recalculate fee percentage if needed
-      if (normalized.feePercentage === 0 && normalized.inputAmount !== '0') {
-        normalized.feePercentage = this.calculateFeePercentage(
-          normalized.inputAmount,
-          normalized.outputAmount
-        );
-      }
-      
+
       return normalized;
     });
   }
-  
+ 
+  /**
+   * Sort routes deterministically: lowest totalFees, fastest ETA, fewest hops
+   */
+  private sortRoutes(routes: NormalizedRoute[]): NormalizedRoute[] {
+    return [...routes].sort((a, b) => {
+      // Primary sort: lowest totalFees
+      try {
+        const feeDiff = BigInt(a.totalFees) - BigInt(b.totalFees);
+        if (feeDiff !== 0n) {
+          return feeDiff > 0n ? 1 : -1;
+        }
+      } catch {
+        // If fee comparison fails, continue to next criteria
+      }
 
+      // Secondary sort: fastest ETA (lowest estimatedTime)
+      const timeDiff = a.estimatedTime - b.estimatedTime;
+      if (timeDiff !== 0) {
+        return timeDiff;
+      }
+
+      // Tertiary sort: fewest hops
+      const hopDiff = a.hops.length - b.hops.length;
+      if (hopDiff !== 0) {
+        return hopDiff;
+      }
+
+      // Stable sort: by id for deterministic ordering
+      return a.id.localeCompare(b.id);
+    });
+  }
   
   /**
    * Calculate fee percentage
@@ -262,7 +312,7 @@ export class BridgeAggregator {
    * @param request The original execution request
    * @returns Validation result with detailed error messages
    */
-  validateRoute(route: BridgeRoute, request: BridgeExecutionRequest): ValidationResult {
+  validateRoute(route: NormalizedRoute, request: BridgeExecutionRequest): ValidationResult {
     return this.validator.validateRoute(route, request);
   }
 
