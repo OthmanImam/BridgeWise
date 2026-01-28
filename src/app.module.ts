@@ -5,13 +5,16 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './config/config.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard'; 
+import { TransactionsModule } from './transactions/transactions.module';
+import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { ThrottlerExceptionFilter } from './common/filters/throttler-exception.filter';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 @Module({
   imports: [
+    ConfigModule,
+    TransactionsModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
