@@ -142,7 +142,12 @@ export class BridgeAggregator {
         const safeError =
           reason && typeof reason === 'object' && 'message' in reason
             ? reason
-            : { message: String(reason) };
+            : {
+                message:
+                  reason instanceof Error
+                    ? reason.message
+                    : JSON.stringify(reason),
+              };
         errors.push({
           provider: adapter.provider,
           error: safeError.message || 'Unknown error',
