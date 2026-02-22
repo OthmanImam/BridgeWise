@@ -70,14 +70,20 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
       return [];
     }
 
-    const sourceEid = this.endpointIds[request.sourceChain]!;
-    const targetEid = this.endpointIds[request.targetChain]!;
+    const sourceEid = this.endpointIds[request.sourceChain as ChainId]!;
+    const targetEid = this.endpointIds[request.targetChain as ChainId]!;
 
     try {
       // First, try to get transfer quote using the OFT API
       // Note: This requires an API key for the /transfer endpoint
       if (this.apiKey) {
-        const transferResponse = await this.apiClient.post('/transfer', {
+        interface TransferData {
+          contractAddress: string;
+          calldata: string;
+          value?: string;
+          gasEstimate?: string;
+        }
+        const transferResponse = await this.apiClient.post<TransferData>('/transfer', {
           srcChainId: sourceEid,
           dstChainId: targetEid,
           amount: request.assetAmount,
@@ -85,9 +91,9 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
           recipient: request.recipientAddress,
         });
 
-        const transferData = transferResponse.data;
+        const transferData: TransferData = transferResponse.data;
 
-        if (transferData && transferData.calldata) {
+        if (transferData && typeof transferData.calldata === 'string') {
           // Estimate fees from historical data or use defaults
           const estimatedFee = await this.estimateFee(
             sourceEid,
@@ -143,8 +149,11 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
 
       // Fallback: Use scan API to get historical fee data
       return await this.fetchRoutesFromScan(request, sourceEid, targetEid);
-    } catch (error) {
-      console.error(`[LayerZeroAdapter] Error fetching routes:`, error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        // eslint-disable-next-line no-console
+        console.error(`[LayerZeroAdapter] Error fetching routes:`, error.message);
+      }
       return [];
     }
   }
@@ -159,7 +168,10 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
   ): Promise<BridgeRoute[]> {
     try {
       // Get recent messages to estimate fees
-      const response = await this.scanApiClient.get('/messages/latest', {
+      interface ScanApiResponse {
+        messages: unknown[];
+      }
+      const response = await this.scanApiClient.get<ScanApiResponse>('/messages/latest', {
         params: {
           limit: 10,
           srcEid: sourceEid,
@@ -167,9 +179,9 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
         },
       });
 
-      const messages = response.data?.messages || [];
+      const messages: unknown[] = response.data?.messages || [];
 
-      if (messages.length === 0) {
+      if (!Array.isArray(messages) || messages.length === 0) {
         return [];
       }
 
@@ -218,8 +230,11 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
       };
 
       return [route];
-    } catch (error) {
-      console.error(`[LayerZeroAdapter] Error fetching from scan API:`, error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        // eslint-disable-next-line no-console
+        console.error(`[LayerZeroAdapter] Error fetching from scan API:`, error.message);
+      }
       return [];
     }
   }

@@ -20,7 +20,7 @@ function getBreaker(providerName) {
             rollingCountTimeout: 10000,
             rollingCountBuckets: 10,
             name: providerName,
-            group: 'Bridge-Providers'
+            group: 'Bridge-Providers',
         };
         const breaker = new opossum_1.default(mockApiCall, options);
         //
@@ -68,11 +68,11 @@ async function mockApiCall(request) {
     }
     // LayerZero will have random failures
     if (Math.random() > 0.5) {
-        return { message: "Success!" };
+        return { message: 'Success!' };
     }
     else {
         const isTransient = Math.random() > 0.3;
-        const err = new Error(isTransient ? "Transient failure" : "Permanent failure");
+        const err = new Error(isTransient ? 'Transient failure' : 'Permanent failure');
         err.isTransient = isTransient;
         throw err;
     }
