@@ -130,16 +130,19 @@ export class BridgeAggregator {
       const adapter = supportedAdapters[index];
 
       if (result.status === 'fulfilled') {
-        const adapterRoutes = result.value;
+        const adapterRoutes = Array.isArray(result.value) ? result.value : [];
         if (adapterRoutes.length > 0) {
           routes.push(...adapterRoutes);
           providersResponded++;
         }
       } else {
+        const reason = result.reason as
+          | { message?: string; code?: string }
+          | undefined;
         errors.push({
           provider: adapter.provider,
-          error: result.reason?.message || 'Unknown error',
-          code: result.reason?.code,
+          error: reason?.message || 'Unknown error',
+          code: reason?.code,
         });
       }
     });

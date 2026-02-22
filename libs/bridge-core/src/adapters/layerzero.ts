@@ -70,8 +70,8 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
       return [];
     }
 
-    const sourceEid = this.endpointIds[request.sourceChain as ChainId]!;
-    const targetEid = this.endpointIds[request.targetChain as ChainId]!;
+    const sourceEid = this.endpointIds[request.sourceChain]!;
+    const targetEid = this.endpointIds[request.targetChain]!;
 
     try {
       // First, try to get transfer quote using the OFT API
@@ -83,13 +83,16 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
           value?: string;
           gasEstimate?: string;
         }
-        const transferResponse = await this.apiClient.post<TransferData>('/transfer', {
-          srcChainId: sourceEid,
-          dstChainId: targetEid,
-          amount: request.assetAmount,
-          tokenAddress: request.tokenAddress,
-          recipient: request.recipientAddress,
-        });
+        const transferResponse = await this.apiClient.post<TransferData>(
+          '/transfer',
+          {
+            srcChainId: sourceEid,
+            dstChainId: targetEid,
+            amount: request.assetAmount,
+            tokenAddress: request.tokenAddress,
+            recipient: request.recipientAddress,
+          },
+        );
 
         const transferData: TransferData = transferResponse.data;
 
@@ -151,8 +154,10 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
       return await this.fetchRoutesFromScan(request, sourceEid, targetEid);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        // eslint-disable-next-line no-console
-        console.error(`[LayerZeroAdapter] Error fetching routes:`, error.message);
+        console.error(
+          `[LayerZeroAdapter] Error fetching routes:`,
+          error.message,
+        );
       }
       return [];
     }
@@ -163,21 +168,24 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
    */
   private async fetchRoutesFromScan(
     request: RouteRequest,
-    sourceEid: number,
-    targetEid: number,
+    _sourceEid: number,
+    _targetEid: number,
   ): Promise<BridgeRoute[]> {
     try {
       // Get recent messages to estimate fees
       interface ScanApiResponse {
         messages: unknown[];
       }
-      const response = await this.scanApiClient.get<ScanApiResponse>('/messages/latest', {
-        params: {
-          limit: 10,
-          srcEid: sourceEid,
-          dstEid: targetEid,
+      const response = await this.scanApiClient.get<ScanApiResponse>(
+        '/messages/latest',
+        {
+          params: {
+            limit: 10,
+            srcEid: sourceEid,
+            dstEid: targetEid,
+          },
         },
-      });
+      );
 
       const messages: unknown[] = response.data?.messages || [];
 
@@ -231,51 +239,75 @@ export class LayerZeroAdapter extends BaseBridgeAdapter {
 
       return [route];
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        // eslint-disable-next-line no-console
-        console.error(`[LayerZeroAdapter] Error fetching from scan API:`, error.message);
+      try {
+        // Get recent messages to estimate fees
+        interface ScanApiResponse {
+          messages: unknown[];
+        }
+        const response = await this.scanApiClient.get<ScanApiResponse>(
+          '/messages/latest',
+          {
+            params: {
+              limit: 10,
+            },
+          },
+        );
+
+        const messages: unknown[] = response.data?.messages || [];
+
+        if (!Array.isArray(messages) || messages.length === 0) {
+          return [];
+        }
+
+        // Estimate fee based on historical data
+        const estimatedFee = await this.estimateFee(
+          0, // sourceEid placeholder
+          0, // targetEid placeholder
+          request.assetAmount,
+        );
+
+        const inputAmount = BigInt(request.assetAmount);
+        const fee = BigInt(estimatedFee);
+        const outputAmount = inputAmount - fee;
+
+        const route: BridgeRoute = {
+          id: this.generateRouteId(
+            this.provider,
+            request.sourceChain,
+            request.targetChain,
+            0,
+          ),
+          provider: this.provider,
+          sourceChain: request.sourceChain,
+          targetChain: request.targetChain,
+          inputAmount: inputAmount.toString(),
+          outputAmount: outputAmount.toString(),
+          fee: fee.toString(),
+          feePercentage: this.calculateFeePercentage(
+            inputAmount.toString(),
+            outputAmount.toString(),
+          ),
+          reliability: 0.92,
+          estimatedTime: this.estimateBridgeTime(0, 0),
+          minAmountOut: this.calculateMinAmountOut(
+            outputAmount.toString(),
+            request.slippageTolerance,
+          ),
+          maxAmountOut: outputAmount.toString(),
+          metadata: {
+            description: `Bridge via LayerZero from ${request.sourceChain} to ${request.targetChain}`,
+            riskLevel: 2,
+            srcChainId: 0,
+            dstChainId: 0,
+            estimated: true, // Mark as estimated since we don't have exact quote
+          },
+        };
+
+        return [route];
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          // eslint-disable-next-line no-console
+          console.error(`[LayerZeroAdapter] Error fetching from scan API:`, error.message);
+        }
+        return [];
       }
-      return [];
-    }
-  }
-
-  /**
-   * Estimate fee for LayerZero bridge
-   */
-  private async estimateFee(
-    sourceEid: number,
-    targetEid: number,
-    amount: string,
-  ): Promise<string> {
-    // LayerZero fees are typically very low (often < $1)
-    // For now, use a fixed percentage estimate
-    // In production, this could query historical data or use LayerZero's fee oracle
-    const amountBigInt = BigInt(amount);
-    // Estimate ~0.1% fee
-    const fee = amountBigInt / 1000n;
-    // Minimum fee of 1000 (in smallest unit)
-    return fee < 1000n ? '1000' : fee.toString();
-  }
-
-  /**
-   * Estimate bridge time based on endpoint IDs
-   */
-  private estimateBridgeTime(sourceEid: number, targetEid: number): number {
-    // LayerZero typically completes in 1-3 minutes for most chains
-    return 2 * 60;
-  }
-
-  /**
-   * Calculate minimum amount out with slippage
-   */
-  private calculateMinAmountOut(
-    amountOut: string,
-    slippageTolerance?: number,
-  ): string {
-    const slippage = slippageTolerance || 0.5;
-    const amount = BigInt(amountOut);
-    const slippageAmount =
-      (amount * BigInt(Math.floor(slippage * 100))) / 10000n;
-    return (amount - slippageAmount).toString();
-  }
-}

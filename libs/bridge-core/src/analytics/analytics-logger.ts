@@ -45,12 +45,12 @@ export class AnalyticsLogger {
       ...event,
       timestamp: event.timestamp || Date.now(),
     };
-    this.provider.logEvent(enriched);
+    void this.provider.logEvent(enriched);
   }
 
   flush() {
     if (this.provider.flush) {
-      this.provider.flush();
+      void this.provider.flush();
     }
   }
 }

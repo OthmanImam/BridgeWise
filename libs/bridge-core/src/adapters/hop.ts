@@ -50,8 +50,8 @@ export class HopAdapter extends BaseBridgeAdapter {
       return [];
     }
 
-    const sourceChain = this.chainMap[request.sourceChain as ChainId]!;
-    const targetChain = this.chainMap[request.targetChain as ChainId]!;
+    const sourceChain = this.chainMap[request.sourceChain]!;
+    const targetChain = this.chainMap[request.targetChain]!;
 
     try {
       // Hop API requires token address, defaulting to native token if not provided
@@ -84,7 +84,8 @@ export class HopAdapter extends BaseBridgeAdapter {
       }
 
       // Calculate estimated received amount
-      const estimatedReceived: string = quote.estimatedReceived || quote.amountOutMin;
+      const estimatedReceived: string =
+        quote.estimatedReceived || quote.amountOutMin;
       const bonderFee: string = quote.bonderFee || '0';
 
       // Calculate output amount (estimated received)
@@ -93,7 +94,10 @@ export class HopAdapter extends BaseBridgeAdapter {
       const fee: bigint = BigInt(bonderFee);
 
       // Estimate time: Hop typically takes 2-5 minutes for L2->L2, 10-20 minutes for L1->L2
-      const estimatedTime: number = this.estimateBridgeTime(sourceChain, targetChain);
+      const estimatedTime: number = this.estimateBridgeTime(
+        sourceChain,
+        targetChain,
+      );
 
       const route: BridgeRoute = {
         id: this.generateRouteId(
@@ -132,7 +136,6 @@ export class HopAdapter extends BaseBridgeAdapter {
     } catch (error: unknown) {
       // Log error but don't throw - return empty array to allow other providers to respond
       if (error instanceof Error) {
-        // eslint-disable-next-line no-console
         console.error(`[HopAdapter] Error fetching routes:`, error.message);
       }
       return [];
@@ -142,7 +145,7 @@ export class HopAdapter extends BaseBridgeAdapter {
   /**
    * Estimate bridge time based on chain pair
    */
-  private estimateBridgeTime(sourceChain: string, targetChain: string): number {
+  private estimateBridgeTime(sourceChain: string): number {
     const isL1 = sourceChain === 'ethereum';
     const isL2 = [
       'polygon',
