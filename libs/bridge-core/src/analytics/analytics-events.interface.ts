@@ -15,6 +15,8 @@ export type AnalyticsEventType =
   | 'slippage_alert'
   | 'network_changed'
   | 'wallet_changed'
+  | 'analytics_updated'
+  | 'metrics_collected'
   | 'error'
   | 'custom';
 
