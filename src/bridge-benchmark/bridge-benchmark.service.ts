@@ -2,9 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BridgeBenchmark,
   TransactionStatus,
@@ -18,11 +20,31 @@ import {
   SpeedMetricsResponseDto,
 } from './dto/bridge-benchmark.dto';
 
+/**
+ * Benchmark completed event payload
+ */
+interface BenchmarkCompletedEvent {
+  id: string;
+  bridgeName: string;
+  sourceChain: string;
+  destinationChain: string;
+  token: string;
+  status: 'confirmed' | 'failed';
+  durationMs: number;
+  amount?: number;
+  slippagePercent?: number;
+  fee?: number;
+  completedAt: Date;
+}
+
 @Injectable()
 export class BridgeBenchmarkService {
+  private readonly logger = new Logger(BridgeBenchmarkService.name);
+
   constructor(
     @InjectRepository(BridgeBenchmark)
     private readonly benchmarkRepository: Repository<BridgeBenchmark>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async initiate(dto: InitiateBenchmarkDto): Promise<BridgeBenchmark> {
@@ -69,7 +91,25 @@ export class BridgeBenchmarkService {
       benchmark.destinationTxHash = dto.destinationTxHash;
     }
 
-    return this.benchmarkRepository.save(benchmark);
+    const saved = await this.benchmarkRepository.save(benchmark);
+
+    // Emit event for analytics collection
+    const event: BenchmarkCompletedEvent = {
+      id: saved.id,
+      bridgeName: saved.bridgeName,
+      sourceChain: saved.sourceChain,
+      destinationChain: saved.destinationChain,
+      token: saved.token,
+      status: 'confirmed',
+      durationMs,
+      amount: saved.amount || undefined,
+      completedAt: now,
+    };
+
+    this.eventEmitter.emit('benchmark.completed', event);
+    this.logger.debug(`Emitted benchmark.completed event for ${id}`);
+
+    return saved;
   }
 
   async updateStatus(
