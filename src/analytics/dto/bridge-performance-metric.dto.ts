@@ -3,9 +3,14 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
+ * Time interval type
+ */
+export type TimeInterval = 'hourly' | 'daily' | 'weekly' | 'monthly';
+
+/**
  * Time interval enum for validation
  */
-export enum TimeInterval {
+export enum TimeIntervalEnum {
   HOURLY = 'hourly',
   DAILY = 'daily',
   WEEKLY = 'weekly',
