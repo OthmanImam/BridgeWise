@@ -11,3 +11,4 @@ export type {
   TransactionHeartbeatHeadlessProps,
   TransactionHeartbeatRenderProps,
 } from './TransactionHeartbeat.headless';
+export type { TransactionHeartbeatProps } from './TransactionHeartbeat';

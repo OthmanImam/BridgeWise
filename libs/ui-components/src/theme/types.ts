@@ -162,6 +162,16 @@ export interface Theme {
   transitions: ThemeTransitions;
 }
 
+export interface BridgeWiseTheme {
+  primaryColor?: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  borderRadius?: string;
+  fontFamily?: string;
+  spacingUnit?: string;
+}
+
 /**
  * Deep partial utility type
  * Allows partial theme customization at any depth

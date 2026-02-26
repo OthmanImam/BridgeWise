@@ -9,6 +9,11 @@
 import React from 'react';
 import { TransactionHeartbeatHeadless } from './TransactionHeartbeat.headless';
 
+export interface TransactionHeartbeatProps {
+  className?: string;
+  style?: React.CSSProperties;
+}
+
 /**
  * Transaction heartbeat notification component
  * Displays transaction progress with themed styling
@@ -27,12 +32,15 @@ import { TransactionHeartbeatHeadless } from './TransactionHeartbeat.headless';
  * }
  * ```
  */
-export const TransactionHeartbeat: React.FC = () => {
+export const TransactionHeartbeat: React.FC<TransactionHeartbeatProps> = ({
+  className,
+  style,
+}) => {
   return (
     <TransactionHeartbeatHeadless>
       {({ state, clearState, isSuccess, isFailed, isPending }) => (
         <div
-          className="fixed bottom-4 right-4 z-50 w-80 overflow-hidden font-sans"
+          className={`fixed bottom-4 right-4 z-50 w-80 overflow-hidden font-sans${className ? ` ${className}` : ''}`}
           style={{
             backgroundColor: 'var(--bw-colors-transaction-background)',
             borderRadius: 'var(--bw-radii-lg)',
@@ -40,6 +48,7 @@ export const TransactionHeartbeat: React.FC = () => {
             border: `1px solid var(--bw-colors-transaction-border)`,
             transition: `all var(--bw-transitions-base)`,
             fontFamily: 'var(--bw-typography-font-family-sans)',
+            ...style,
           }}
         >
           <div style={{ padding: 'var(--bw-spacing-md)' }}>

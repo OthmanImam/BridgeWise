@@ -19,6 +19,8 @@ export interface BridgeHistoryProps {
   includeBackend?: boolean;
   historyConfig?: TransactionHistoryConfig;
   emptyStateMessage?: string;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export const BridgeHistory: React.FC<BridgeHistoryProps> = ({
@@ -32,6 +34,8 @@ export const BridgeHistory: React.FC<BridgeHistoryProps> = ({
   includeBackend = false,
   historyConfig,
   emptyStateMessage = 'No transactions found for this account.',
+  className,
+  style,
 }) => {
   const filter: TransactionHistoryFilter = {
     chain,
@@ -51,30 +55,28 @@ export const BridgeHistory: React.FC<BridgeHistoryProps> = ({
     historyConfig,
   );
 
-  if (!account) {
-    return <p>Connect a wallet to view transaction history.</p>;
-  }
-
-  if (loading) {
-    return <p>Loading transaction history...</p>;
-  }
-
-  if (transactions.length === 0) {
-    return <p>{emptyStateMessage}</p>;
-  }
-
   return (
-    <div>
-      <h3>Bridge History</h3>
-      <ul>
-        {transactions.map((transaction) => (
-          <li key={`${transaction.account}:${transaction.txHash}`}>
-            <strong>{transaction.bridgeName}</strong> • {transaction.sourceChain} →{' '}
-            {transaction.destinationChain} • {transaction.amount} {transaction.sourceToken} •{' '}
-            {transaction.status} • {transaction.timestamp.toLocaleString()}
-          </li>
-        ))}
-      </ul>
+    <div className={className} style={style}>
+      {!account && <p>Connect a wallet to view transaction history.</p>}
+
+      {account && loading && <p>Loading transaction history...</p>}
+
+      {account && !loading && transactions.length === 0 && <p>{emptyStateMessage}</p>}
+
+      {account && !loading && transactions.length > 0 && (
+        <>
+          <h3>Bridge History</h3>
+          <ul>
+            {transactions.map((transaction) => (
+              <li key={`${transaction.account}:${transaction.txHash}`}>
+                <strong>{transaction.bridgeName}</strong> • {transaction.sourceChain} →{' '}
+                {transaction.destinationChain} • {transaction.amount} {transaction.sourceToken} •{' '}
+                {transaction.status} • {transaction.timestamp.toLocaleString()}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 };

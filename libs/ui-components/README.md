@@ -2,6 +2,106 @@
 
 BridgeWise UI SDK components and hooks for cross-chain UX.
 
+## Theming Guide
+
+BridgeWise exposes a flexible, type-safe theming system that can be used globally or per app.
+
+### BridgeWiseTheme
+
+For simple integrations, you can use the high-level `BridgeWiseTheme` interface:
+
+```ts
+import type { BridgeWiseTheme } from '@bridgewise/ui-components';
+
+const theme: BridgeWiseTheme = {
+  primaryColor: '#22c55e',
+  secondaryColor: '#0f172a',
+  backgroundColor: '#020617',
+  textColor: '#e5e7eb',
+  borderRadius: '16px',
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  spacingUnit: '0.9rem',
+};
+```
+
+### BridgeWiseProvider
+
+Wrap your dApp (or specific sections) with `BridgeWiseProvider` to inject theme tokens and CSS variables:
+
+```tsx
+import {
+  BridgeWiseProvider,
+  TransactionHeartbeat,
+  BridgeStatus,
+} from '@bridgewise/ui-components';
+
+const customTheme = {
+  primaryColor: '#22c55e',
+  backgroundColor: '#020617',
+  textColor: '#e5e7eb',
+};
+
+export function App() {
+  return (
+    <BridgeWiseProvider theme={customTheme} defaultMode="dark">
+      {/* Your app + BridgeWise components */}
+      <BridgeStatus /* ...props */ />
+      <TransactionHeartbeat />
+    </BridgeWiseProvider>
+  );
+}
+```
+
+Under the hood this is mapped into the full token-based `Theme` object and converted into CSS variables with the `--bw-` prefix, e.g.:
+
+- `--bw-colors-transaction-background`
+- `--bw-colors-foreground-primary`
+- `--bw-spacing-md`
+- `--bw-typography-font-size-sm`
+
+You can also pass a full `DeepPartial<Theme>` instead of `BridgeWiseTheme` for complete control.
+
+### Dark Mode
+
+The theme system supports light/dark mode with a `ThemeMode`:
+
+- `'light'`
+- `'dark'`
+- `'system'` (default)
+
+`BridgeWiseProvider` forwards `defaultMode`, `enableSystem`, and related props to the underlying `ThemeProvider`. Dark mode uses the built-in `darkTheme` token overrides.
+
+### Component-level overrides
+
+All public UI components support `className` and/or `style` overrides to match your design system:
+
+- `TransactionHeartbeat` – `className`, `style`
+- `BridgeStatus` – `className`, `style`
+- `BridgeHistory` – `className`, `style`
+- `BridgeCompare` – `className`, `style`
+
+Example:
+
+```tsx
+<TransactionHeartbeat className="left-4 right-auto" />
+<BridgeCompare className="rounded-xl border border-slate-800" />
+```
+
+### CSS variable mapping
+
+If you need to integrate with Tailwind or other CSS-in-JS systems, you can rely on the generated CSS variables:
+
+```ts
+import { generateCSSVariables, defaultTheme } from '@bridgewise/ui-components';
+
+const cssVars = generateCSSVariables(defaultTheme);
+// cssVars['--bw-colors-transaction-background'] => '#ffffff'
+```
+
+These variables are applied at the `document.documentElement` level by `ThemeProvider`, and are safe to use in custom styles as `var(--bw-...)`.
+
+---
+
 ## Transaction History
 
 The transaction history module provides a unified view across Stellar and EVM bridge executions.

@@ -7,6 +7,7 @@
 export {
   ThemeProvider,
   useTheme,
+  BridgeWiseProvider,
   ThemeScript,
   defaultTheme,
   darkTheme,
@@ -27,6 +28,7 @@ export type {
   ThemeContextValue,
   DeepPartial,
   ThemeConfig,
+   BridgeWiseTheme,
   CSSVariables,
 } from './theme';
 

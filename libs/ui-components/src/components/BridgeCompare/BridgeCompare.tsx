@@ -13,6 +13,8 @@ interface BridgeCompareProps {
   showBenchmarkComparison?: boolean;
   minLiquidityThreshold?: number;
   onRouteSelect?: (route: BridgeRoute) => void;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 // Define the types locally to avoid import issues
@@ -28,7 +30,9 @@ const BridgeCompare: React.FC<BridgeCompareProps> = ({
   destinationChain,
   showBenchmarkComparison = true,
   minLiquidityThreshold = 0,
-  onRouteSelect
+  onRouteSelect,
+  className,
+  style,
 }: BridgeCompareProps) => {
   // Get benchmark data for comparison
   const { 
@@ -78,7 +82,10 @@ const BridgeCompare: React.FC<BridgeCompareProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-4${className ? ` ${className}` : ''}`}
+      style={style}
+    >
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bridge Comparison</h2>
         <p className="text-gray-600 dark:text-gray-300">
