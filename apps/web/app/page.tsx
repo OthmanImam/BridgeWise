@@ -2,7 +2,22 @@
 'use client';
 
 import { useEffect } from 'react';
-import { TransactionHeartbeat, useTransaction } from '@bridgewise/ui-components';
+import {
+  BridgeWiseProvider,
+  TransactionHeartbeat,
+  useTransaction,
+  BridgeStatus,
+} from '@bridgewise/ui-components';
+
+const customTheme = {
+  primaryColor: '#22c55e',
+  secondaryColor: '#0f172a',
+  backgroundColor: '#020617',
+  textColor: '#e5e7eb',
+  borderRadius: '16px',
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  spacingUnit: '0.9rem',
+};
 
 function TransactionDemo() {
   const { state, updateState, startTransaction, clearState } = useTransaction();
@@ -32,34 +47,73 @@ function TransactionDemo() {
   }, [state, updateState]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-24 bg-zinc-50 dark:bg-zinc-900">
-      <main className="flex flex-col items-center gap-8">
-        <h1 className="text-4xl font-bold text-center text-zinc-900 dark:text-zinc-100">
-          BridgeWise Transaction Heartbeat Demo
-        </h1>
+    <BridgeWiseProvider theme={customTheme} defaultMode="dark">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-12 p-10 bg-zinc-50 dark:bg-black">
+        <main className="flex flex-col items-center gap-8 max-w-3xl">
+          <h1 className="text-4xl font-bold text-center text-zinc-900 dark:text-zinc-100">
+            BridgeWise Theming Demo
+          </h1>
 
-        <p className="max-w-md text-center text-zinc-600 dark:text-zinc-400">
-          Click "Start Transaction" to simulate a bridge transfer. Then refresh the page to verify that the state persists and the heartbeat component reappears.
-        </p>
+          <p className="max-w-xl text-center text-zinc-600 dark:text-zinc-400">
+            This page demonstrates the BridgeWise theme system. The heartbeat and status components
+            are styled via CSS variables injected by <code>BridgeWiseProvider</code>, with a custom
+            primary color and dark background.
+          </p>
 
-        <div className="flex gap-4">
-          <button
-            onClick={() => startTransaction('tx-' + Date.now())}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition active:scale-95"
-          >
-            Start Transaction
-          </button>
-          <button
-            onClick={clearState}
-            className="px-6 py-3 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition active:scale-95"
-          >
-            Clear State
-          </button>
-        </div>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <button
+              onClick={() => startTransaction('tx-' + Date.now())}
+              className="px-6 py-3 rounded-lg text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition"
+            >
+              Start Transaction
+            </button>
+            <button
+              onClick={clearState}
+              className="px-6 py-3 rounded-lg text-sm font-medium border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 transition"
+            >
+              Clear State
+            </button>
+          </div>
 
-        <TransactionHeartbeat />
-      </main>
-    </div>
+          <section className="grid w-full gap-6 md:grid-cols-2">
+            <div className="rounded-2xl border border-zinc-200/60 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/60 p-4 shadow-sm">
+              <h2 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-zinc-50">
+                Inline BridgeStatus
+              </h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                An inline status card using the same theme variables as the floating heartbeat.
+              </p>
+              <BridgeStatus
+                txHash={state.txHash || '0x0000000000000000000000000000000000000000'}
+                bridgeName="demo"
+                sourceChain="ethereum"
+                destinationChain="polygon"
+                amount={123.45}
+                token="USDC"
+                slippagePercent={0.5}
+                estimatedTimeSeconds={300}
+                detailed
+              />
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200/60 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/60 p-4 shadow-sm">
+              <h2 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-zinc-50">
+                Component-level Overrides
+              </h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                The floating heartbeat below uses a custom <code>className</code> to adjust its
+                position while still inheriting all theme variables.
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                Trigger a transaction and you&apos;ll see the heartbeat appear in the bottom-left corner.
+              </p>
+            </div>
+          </section>
+
+          <TransactionHeartbeat className="left-4 right-auto" />
+        </main>
+      </div>
+    </BridgeWiseProvider>
   );
 }
 
