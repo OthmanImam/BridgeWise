@@ -91,7 +91,7 @@ export class BridgePerformanceMetricDto {
   @ApiPropertyOptional({ description: 'Token symbol' })
   token?: string;
 
-  @ApiProperty({ description: 'Time interval', enum: TimeInterval })
+  @ApiProperty({ description: 'Time interval', enum: TimeIntervalEnum })
   timeInterval: TimeInterval;
 
   @ApiProperty({ description: 'Timestamp for this metric period' })
@@ -188,7 +188,7 @@ export class HistoricalTrendsDto {
   @ApiPropertyOptional({ description: 'Token symbol' })
   token?: string;
 
-  @ApiProperty({ description: 'Time interval', enum: TimeInterval })
+  @ApiProperty({ description: 'Time interval', enum: TimeIntervalEnum })
   timeInterval: TimeInterval;
 
   @ApiProperty({ description: 'Trend data points', type: [BridgePerformanceMetricDto] })
@@ -211,7 +211,7 @@ export class BridgePerformanceComparisonDto {
   @ApiProperty({ description: 'Destination chain' })
   destinationChain: string;
 
-  @ApiProperty({ description: 'Time interval', enum: TimeInterval })
+  @ApiProperty({ description: 'Time interval', enum: TimeIntervalEnum })
   timeInterval: TimeInterval;
 
   @ApiProperty({ description: 'Number of data points' })
